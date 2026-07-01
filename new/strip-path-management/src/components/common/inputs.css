@@ -1,0 +1,56 @@
+.field-input,
+.field-select,
+.field-textarea {
+  width: 100%;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: var(--font-size-base);
+  color: var(--color-input-text);
+  font-family: inherit;
+}
+
+.field-input:focus,
+.field-select:focus,
+.field-textarea:focus {
+  outline: 2px solid #6fa8dc;
+  outline-offset: -1px;
+}
+
+.field-input--disabled {
+  background: var(--color-input-disabled-bg);
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.field-select {
+  appearance: auto;
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 54px;
+}
+
+.date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-input__field {
+  padding-right: 24px;
+}
+
+.date-input__icon {
+  position: absolute;
+  right: 6px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.field-file {
+  font-size: var(--font-size-small);
+  background: var(--color-panel-bg);
+}

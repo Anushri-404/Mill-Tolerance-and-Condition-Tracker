@@ -1,0 +1,26 @@
+.form-field {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.form-field__label {
+  color: var(--color-label-text);
+  white-space: nowrap;
+  margin-right: 6px;
+  font-size: var(--font-size-base);
+}
+
+.form-field__colon {
+  margin-left: 2px;
+}
+
+.form-field__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-field__plain {
+  color: var(--color-label-text);
+  font-size: var(--font-size-base);
+}
