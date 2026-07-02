@@ -1,0 +1,35 @@
+.log-form {
+  padding: 10px 14px 16px;
+}
+
+.log-form__mandatory-note {
+  color: var(--color-required);
+  font-weight: 700;
+  margin: 4px 0 12px;
+}
+
+.log-form__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, max-content) 1fr);
+  grid-template-rows: repeat(7, auto);
+  column-gap: 8px;
+  row-gap: 14px;
+}
+
+.log-form__grid .form-field .form-field__control {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.log-form__filler {
+  grid-column: span 2;
+}
+
+.log-form__defect-cell .form-field__control {
+  grid-column: span 3;
+  max-width: none;
+}
+
+.log-form__attachment-cell .form-field__control {
+  max-width: none;
+}

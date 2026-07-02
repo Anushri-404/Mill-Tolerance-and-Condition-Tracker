@@ -1,8 +1,5 @@
-:root {
-  --color-topbar-bg: #1b3a63;
-  --color-topbar-text: #e8f0fb;
-  --color-topbar-link: #ffffff;
 
+:root {
   --color-page-bg: #eef2f6;
   --color-panel-bg: #ffffff;
   --color-panel-border: #c6d6e6;
@@ -22,11 +19,8 @@
   --color-input-disabled-bg: #fbfbe8;
   --color-input-text: #222222;
 
-  --color-sidebar-bg: #ffffff;
-  --color-sidebar-border: #d7e0e8;
-  --color-sidebar-text: #1a4d8f;
-  --color-sidebar-active-bg: #1a4d8f;
-  --color-sidebar-active-text: #ffffff;
+  --color-input-muted-bg: #e6ecf3;
+  --color-input-muted-border: #c3d2e3;
 
   --font-family-base: Arial, Helvetica, sans-serif;
   --font-size-base: 12.5px;

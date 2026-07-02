@@ -23,6 +23,14 @@
   color: #666666;
   cursor: not-allowed;
 }
+.field-input--muted {
+  background: var(--color-input-muted-bg);
+  border-color: var(--color-input-muted-border);
+}
+.field-input--plain {
+  background: var(--color-panel-bg);
+  border-color: var(--color-input-border);
+}
 
 .field-select {
   appearance: auto;

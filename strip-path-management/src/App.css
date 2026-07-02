@@ -1,9 +1,10 @@
+/*column*/ 
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
-
+/*row*/ 
 .app__body {
   display: flex;
   align-items: flex-start;

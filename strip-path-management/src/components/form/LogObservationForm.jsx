@@ -39,7 +39,6 @@ const INITIAL_STATE = {
   defectDetails: '',
   attachment: null,
 }
-
 function LogObservationForm() {
   const [form, setForm] = useState(INITIAL_STATE)
 
@@ -55,7 +54,8 @@ function LogObservationForm() {
     <form className="log-form" onSubmit={(e) => e.preventDefault()}>
       <p className="log-form__mandatory-note">Mandatory fields*</p>
 
-      <div className="log-form__row">
+      <div className="log-form__grid">
+        {/* Row 1 */}
         <FormField label="Section" required>
           <SelectField
             value={form.section}
@@ -77,42 +77,41 @@ function LogObservationForm() {
             options={EQUIPMENT_LEVEL2_OPTIONS}
           />
         </FormField>
-      </div>
+        <div className="log-form__filler" aria-hidden="true" />
 
-      <div className="log-form__row">
+        {/* Row 2 */}
         <FormField label="Diameter">
-          <TextInput value={form.diameter} onChange={handleChange('diameter')} />
+          <TextInput value={form.diameter} onChange={handleChange('diameter')} variant="muted" />
         </FormField>
         <FormField label="Hardness">
-          <TextInput value={form.hardness} onChange={handleChange('hardness')} />
+          <TextInput value={form.hardness} onChange={handleChange('hardness')} variant="muted" />
         </FormField>
-      </div>
+        <div className="log-form__filler" aria-hidden="true" />
+        <div className="log-form__filler" aria-hidden="true" />
 
-      <div className="log-form__row">
+        {/* Row 3 */}
         <FormField label="Roll Coating">
-          <TextInput value={form.rollCoating} onChange={handleChange('rollCoating')} />
+          <TextInput value={form.rollCoating} onChange={handleChange('rollCoating')} variant="muted" />
         </FormField>
         <FormField label="Maintenance Philosophy">
           <TextInput
             value={form.maintenancePhilosophy}
             onChange={handleChange('maintenancePhilosophy')}
+            variant="muted"
           />
         </FormField>
         <FormField label="Replacement Frequency">
           <TextInput
             value={form.replacementFrequency}
             onChange={handleChange('replacementFrequency')}
+            variant="muted"
           />
         </FormField>
-        <FormField label="Touch Point" plain>
-           <TextInput
-            value={form.touchPoint}/>
+        <FormField label="Touch Point">
+          <TextInput value={form.touchPoint} onChange={handleChange('touchPoint')} variant="muted" />
         </FormField>
-      </div>
 
-      <hr className="log-form__divider" />
-
-      <div className="log-form__row">
+        {/* Row 4 */}
         <FormField label="Observation Type" required>
           <SelectField
             value={form.observationType}
@@ -137,9 +136,8 @@ function LogObservationForm() {
         <FormField label="Diameter new">
           <TextInput value={form.diameterNew} onChange={handleChange('diameterNew')} />
         </FormField>
-      </div>
 
-      <div className="log-form__row">
+        {/* Row 5 */}
         <FormField label="Hardness new">
           <TextInput value={form.hardnessNew} onChange={handleChange('hardnessNew')} />
         </FormField>
@@ -161,9 +159,8 @@ function LogObservationForm() {
             onChange={handleChange('bakeliteGuidePlateCondition')}
           />
         </FormField>
-      </div>
 
-      <div className="log-form__row">
+        {/* Row 6 */}
         <FormField label="Strip Path Audit Date">
           <DateInput
             value={form.stripPathAuditDate}
@@ -182,19 +179,20 @@ function LogObservationForm() {
             onChange={handleChange('lastBearingGreasingDate')}
           />
         </FormField>
-      </div>
+        <div className="log-form__filler" aria-hidden="true" />
 
-      <div className="log-form__row log-form__row--bottom">
-        <FormField label="Defect Details" required>
+        {/* Row 7 */}
+        <FormField label="Defect Details" required className="log-form__defect-cell">
           <TextArea
             value={form.defectDetails}
             onChange={handleChange('defectDetails')}
             rows={3}
           />
         </FormField>
-        <FormField label="Attachment (if any)">
+        <FormField label="Attachment (if any)" className="log-form__attachment-cell">
           <FileInput onChange={handleFileChange} />
         </FormField>
+        <div className="log-form__filler" aria-hidden="true" />
       </div>
     </form>
   )

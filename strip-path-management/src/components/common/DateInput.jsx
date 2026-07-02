@@ -1,9 +1,11 @@
 import './inputs.css'
-function DateInput({ value, onChange, name }) {
+
+function DateInput({ value, onChange, name, variant = 'default' }) {
+  const variantClass = variant === 'muted' ? ' field-input--muted' : ''
   return (
     <div className="date-input">
       <input
-        className="field-input date-input__field"
+        className={'field-input date-input__field' + variantClass}
         type="date"
         name={name}
         value={value}
