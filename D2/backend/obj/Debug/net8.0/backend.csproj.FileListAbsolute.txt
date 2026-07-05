@@ -32,11 +32,6 @@ C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\backend.sourcelink.json
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets.build.json
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets.development.json
-C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets\msbuild.backend.Microsoft.AspNetCore.StaticWebAssets.props
-C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets\msbuild.build.backend.props
-C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.backend.props
-C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.backend.props
-C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets.pack.json
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\scopedcss\bundle\backend.styles.css
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\backend.csproj.Up2Date
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\backend.dll
@@ -44,3 +39,11 @@ C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\backend.pdb
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\backend.genruntimeconfig.cache
 C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\ref\backend.dll
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\bin\Debug\net8.0\backend.staticwebassets.endpoints.json
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\rjimswa.dswa.cache.json
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets.build.json.cache
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\staticwebassets.build.endpoints.json
+C:\Users\anush\OneDrive\Documents\GitHub\Internship\D2\backend\obj\Debug\net8.0\swae.build.ex.cache
