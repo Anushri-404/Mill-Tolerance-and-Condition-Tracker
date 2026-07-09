@@ -85,7 +85,7 @@ namespace backend.Repositories
         {
             if (_useMock)
             {
-                // Machine ID = 1 hardcoded
+                // Machine ID = 1
                 return await Task.FromResult(MockEquipmentList
                     .Where(e => e.MachineId == 1)
                     .Select(e => e.Section)
@@ -220,9 +220,6 @@ namespace backend.Repositories
                 using var conn = new OracleConnection(_connectionString);
                 await conn.OpenAsync();
 
-                // Build insert command. Using standard INSERT with fallback for primary key.
-                // We first check if sequence exists, or do a subquery MAX(SPM_OBS_ID) + 1.
-                // To be robust, let's write SQL using COALESCE((SELECT MAX(SPM_OBS_ID) FROM TRN_SPM_OBSERVATION), 0) + 1
                 string sql = @"
                     INSERT INTO TRN_SPM_OBSERVATION (
                         SPM_OBS_ID, EQUIPID_L2, OBSTYPE, AFFECTEDP, DEFDETAILS, ATTACHMENT, 

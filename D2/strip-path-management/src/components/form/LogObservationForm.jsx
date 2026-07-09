@@ -1,4 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import alertify from 'alertifyjs'
+import 'alertifyjs/build/css/alertify.css'
 import FormField from '../common/FormField'
 import TextInput from '../common/TextInput'
 import SelectField from '../common/SelectField'
@@ -6,6 +8,16 @@ import DateInput from '../common/DateInput'
 import FileInput from '../common/FileInput'
 import TextArea from '../common/TextArea'
 import './LogObservationForm.css'
+
+const MANDATORY_FIELDS = [
+  { key: 'section', label: 'Section' },
+  { key: 'equipmentLevel1', label: 'Equipment Level1' },
+  { key: 'equipmentLevel2', label: 'Equipment Level2' },
+  { key: 'observationType', label: 'Observation Type' },
+  { key: 'affectedPortion', label: 'Affected Portion' },
+  { key: 'severity', label: 'Severity' },
+  { key: 'defectDetails', label: 'Defect Details' },
+]
 
 const INITIAL_STATE = {
   section: '',
@@ -40,6 +52,7 @@ const LogObservationForm = forwardRef((props, ref) => {
   const [obsTypes, setObsTypes] = useState([])
   const [affectedPortions, setAffectedPortions] = useState([])
   const [fileKey, setFileKey] = useState(0)
+  const [loading, setLoading] = useState(false)
 
   const API_BASE = 'http://localhost:5103/api/spm'
 
@@ -210,18 +223,15 @@ const LogObservationForm = forwardRef((props, ref) => {
   }
 
   const saveForm = async () => {
-    // Validate mandatory fields
-    if (
-      !form.section ||
-      !form.equipmentLevel1 ||
-      !form.equipmentLevel2 ||
-      !form.observationType ||
-      !form.affectedPortion ||
-      !form.severity ||
-      !form.defectDetails
-    ) {
-      alert('Please fill in all mandatory (*) fields.')
-      return
+    setLoading(true)
+    
+    for (const field of MANDATORY_FIELDS) {
+      const value = form[field.key]
+      if (!value || value === '' || value === undefined) {
+        alertify.error(field.label + ' is required.')
+        setLoading(false)
+        return
+      }
     }
 
     const formData = new FormData()
@@ -254,14 +264,16 @@ const LogObservationForm = forwardRef((props, ref) => {
 
       const result = await response.json()
       if (result.success) {
-        alert('Observation saved successfully!')
+        alertify.success('Observation saved successfully!')
         cancelForm()
       } else {
-        alert('Failed to save observation: ' + result.message)
+        alertify.error('Failed to save observation: ' + result.message)
       }
     } catch (error) {
       console.error('Error saving observation:', error)
-      alert('Error occurred while connecting to the backend API.')
+      alertify.error('Error occurred while connecting to the backend API.')
+    } finally {
+      setLoading(false)
     }
   }
 
