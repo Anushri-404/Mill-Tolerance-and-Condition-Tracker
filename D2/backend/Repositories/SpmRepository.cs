@@ -14,7 +14,8 @@ namespace backend.Repositories
     {
         private readonly string _connectionString;
         private readonly ILogger<SpmRepository> _logger;
-        private readonly bool _useMock;
+        private DateTime? _oracleRetryAfterUtc;
+        private readonly object _oracleStateLock = new();
 
         // Mock Tables
         private static readonly List<MockCode> MockCodes = new()
@@ -69,23 +70,62 @@ namespace backend.Repositories
         {
             _logger = logger;
             _connectionString = configuration.GetConnectionString("OracleConnection") ?? string.Empty;
-            _useMock = string.IsNullOrWhiteSpace(_connectionString);
 
-            if (_useMock)
+            if (string.IsNullOrWhiteSpace(_connectionString))
             {
                 _logger.LogWarning("Oracle connection string is not configured. Running in local MOCK fallback mode.");
             }
             else
             {
-                _logger.LogInformation("Oracle connection string is configured. Connecting to Oracle database.");
+                _logger.LogInformation("Oracle connection string is configured. Will use Oracle when reachable, mock otherwise.");
+            }
+        }
+
+        // Decides, per call, whether to hit Oracle or fall back to mock data.
+        // If Oracle just failed, skip retrying for 30s so a down DB doesn't
+        // make every dropdown hang on a connection timeout.
+        private async Task<bool> IsOracleAvailableAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_connectionString))
+            {
+                return false;
+            }
+
+            lock (_oracleStateLock)
+            {
+                if (_oracleRetryAfterUtc.HasValue && DateTime.UtcNow < _oracleRetryAfterUtc.Value)
+                {
+                    return false;
+                }
+            }
+
+            try
+            {
+                using var conn = new OracleConnection(_connectionString + ";Connection Timeout=3");
+                await conn.OpenAsync();
+                await conn.CloseAsync();
+
+                lock (_oracleStateLock)
+                {
+                    _oracleRetryAfterUtc = null;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Oracle unreachable, falling back to mock data for this request.");
+                lock (_oracleStateLock)
+                {
+                    _oracleRetryAfterUtc = DateTime.UtcNow.AddSeconds(30);
+                }
+                return false;
             }
         }
 
         public async Task<IEnumerable<string>> GetSectionsAsync()
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
-                // Machine ID = 1
                 return await Task.FromResult(MockEquipmentList
                     .Where(e => e.MachineId == 1)
                     .Select(e => e.Section)
@@ -98,7 +138,7 @@ namespace backend.Repositories
 
         public async Task<IEnumerable<string>> GetEquipL1Async(string section)
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
                 return await Task.FromResult(MockEquipmentList
                     .Where(e => e.MachineId == 1 && e.Section.Equals(section, StringComparison.OrdinalIgnoreCase))
@@ -112,7 +152,7 @@ namespace backend.Repositories
 
         public async Task<IEnumerable<SpmEquipL2Dto>> GetEquipL2Async(string section, string equipL1)
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
                 return await Task.FromResult(MockEquipmentList
                     .Where(e => e.MachineId == 1 &&
@@ -131,7 +171,7 @@ namespace backend.Repositories
 
         public async Task<SpmGreyPartsDto?> GetGreyPartsAsync(string equipL2Id)
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
                 var equip = MockEquipmentList.FirstOrDefault(e => e.EquipIdL2.Equals(equipL2Id, StringComparison.OrdinalIgnoreCase));
                 if (equip == null) return null;
@@ -147,14 +187,13 @@ namespace backend.Repositories
                 });
             }
 
-            // Note: EL2_M calls procedure with MachineID = "0" as per guidelines: ("EL2_M", 0, "", equipLevel2_ID)
             var list = await GetMasterListGreyPartsAsync("EL2_M", "0", "", equipL2Id);
             return list.FirstOrDefault();
         }
 
         public async Task<IEnumerable<SpmCodeDto>> GetObservationTypesAsync()
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
                 return await Task.FromResult(MockCodes
                     .Where(c => c.MachineId == 1 && c.CodeType.Equals("OBS", StringComparison.OrdinalIgnoreCase))
@@ -167,7 +206,7 @@ namespace backend.Repositories
 
         public async Task<IEnumerable<SpmCodeDto>> GetAffectedPortionsAsync()
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
                 return await Task.FromResult(MockCodes
                     .Where(c => c.MachineId == 1 && c.CodeType.Equals("AFP", StringComparison.OrdinalIgnoreCase))
@@ -180,17 +219,21 @@ namespace backend.Repositories
 
         public async Task<bool> SaveObservationAsync(SpmObservationInput input, string? attachmentName, string? fileExtension)
         {
-            if (_useMock)
+            if (!await IsOracleAvailableAsync())
             {
                 var newObs = new MockObservation
                 {
                     SpmObsId = _nextObsId++,
                     EquipIdL2 = input.EquipIdL2,
+                    SectionName = input.SectionName,
+                    EquipL1Desc = input.EquipL1Desc,
+                    EquipL2Desc = input.EquipL2Desc,
                     ObsType = input.ObsType,
                     AffectedP = input.AffectedP,
                     DefDetails = input.DefDetails,
                     Attachment = !string.IsNullOrEmpty(attachmentName) ? "YES" : "NO",
-                    CreatedBy = "1221", // Hardcoded per sample
+                    AttachmentName = attachmentName,
+                    CreatedBy = "1221",
                     CreatedOn = DateTime.Now,
                     DiameterNew = input.DiameterNew,
                     HardnessNew = input.HardnessNew,
@@ -222,13 +265,15 @@ namespace backend.Repositories
 
                 string sql = @"
                     INSERT INTO TRN_SPM_OBSERVATION (
-                        SPM_OBS_ID, EQUIPID_L2, OBSTYPE, AFFECTEDP, DEFDETAILS, ATTACHMENT, 
-                        CREATEDBY, CREATEDON, DIAMETER_NEW, HARDNESS_NEW, LINING_COND_NEW, 
-                        BEARING_COND_NEW, BAKELITE_PLATE_COND_NEW, SEVERITY_STATUS, 
+                        SPM_OBS_ID, EQUIPID_L2, SECTION_NAME, EQUIP_L1_DESC, EQUIP_L2_DESC,
+                        OBSTYPE, AFFECTEDP, DEFDETAILS, ATTACHMENT, ATTACHMENT_NAME,
+                        CREATEDBY, CREATEDON, DIAMETER_NEW, HARDNESS_NEW, LINING_COND_NEW,
+                        BEARING_COND_NEW, BAKELITE_PLATE_COND_NEW, SEVERITY_STATUS,
                         SP_AUDIT_DATE, LAST_ROLLCHANGE_DATE, LAST_BEARGREASE_DATE, EXTENSION
                     ) VALUES (
                         (SELECT COALESCE(MAX(SPM_OBS_ID), 0) + 1 FROM TRN_SPM_OBSERVATION),
-                        :EquipIdL2, :ObsType, :AffectedP, :DefDetails, :Attachment,
+                        :EquipIdL2, :SectionName, :EquipL1Desc, :EquipL2Desc,
+                        :ObsType, :AffectedP, :DefDetails, :Attachment, :AttachmentName,
                         :CreatedBy, SYSDATE, :DiameterNew, :HardnessNew, :LiningCondNew,
                         :BearingCondNew, :BakelitePlateCondNew, :SeverityStatus,
                         :SpAuditDate, :LastRollChangeDate, :LastBearGreaseDate, :Extension
@@ -236,10 +281,14 @@ namespace backend.Repositories
 
                 using var cmd = new OracleCommand(sql, conn);
                 cmd.Parameters.Add(new OracleParameter("EquipIdL2", OracleDbType.Varchar2) { Value = (object?)input.EquipIdL2 ?? DBNull.Value });
+                cmd.Parameters.Add(new OracleParameter("SectionName", OracleDbType.Varchar2) { Value = (object?)input.SectionName ?? DBNull.Value });
+                cmd.Parameters.Add(new OracleParameter("EquipL1Desc", OracleDbType.Varchar2) { Value = (object?)input.EquipL1Desc ?? DBNull.Value });
+                cmd.Parameters.Add(new OracleParameter("EquipL2Desc", OracleDbType.Varchar2) { Value = (object?)input.EquipL2Desc ?? DBNull.Value });
                 cmd.Parameters.Add(new OracleParameter("ObsType", OracleDbType.Varchar2) { Value = (object?)input.ObsType ?? DBNull.Value });
                 cmd.Parameters.Add(new OracleParameter("AffectedP", OracleDbType.Varchar2) { Value = (object?)input.AffectedP ?? DBNull.Value });
                 cmd.Parameters.Add(new OracleParameter("DefDetails", OracleDbType.Varchar2) { Value = (object?)input.DefDetails ?? DBNull.Value });
                 cmd.Parameters.Add(new OracleParameter("Attachment", OracleDbType.Varchar2) { Value = !string.IsNullOrEmpty(attachmentName) ? "YES" : "NO" });
+                cmd.Parameters.Add(new OracleParameter("AttachmentName", OracleDbType.Varchar2) { Value = (object?)attachmentName ?? DBNull.Value });
                 cmd.Parameters.Add(new OracleParameter("CreatedBy", OracleDbType.Varchar2) { Value = "1221" });
                 cmd.Parameters.Add(new OracleParameter("DiameterNew", OracleDbType.Varchar2) { Value = (object?)input.DiameterNew ?? DBNull.Value });
                 cmd.Parameters.Add(new OracleParameter("HardnessNew", OracleDbType.Varchar2) { Value = (object?)input.HardnessNew ?? DBNull.Value });
@@ -260,6 +309,159 @@ namespace backend.Repositories
                 _logger.LogError(ex, "Error occurred while saving observation to Oracle database.");
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<SpmObservationReportDto>> GetObservationReportAsync(SpmReportFilter filter)
+        {
+            if (!await IsOracleAvailableAsync())
+            {
+                var query = MockObservations.AsEnumerable();
+
+                query = query.Where(o => o.CreatedOn.Date >= filter.StartDate.Date
+                                       && o.CreatedOn.Date <= filter.EndDate.Date);
+
+                var joined = query.Select(o =>
+                {
+                    var equip = MockEquipmentList.FirstOrDefault(e => e.EquipIdL2 == o.EquipIdL2);
+                    return new SpmObservationReportDto
+                    {
+                        ObservationId = o.SpmObsId,
+                        Section = !string.IsNullOrEmpty(o.SectionName) ? o.SectionName : (equip?.Section ?? string.Empty),
+                        EquipLv1 = !string.IsNullOrEmpty(o.EquipL1Desc) ? o.EquipL1Desc : (equip?.EquipL1 ?? string.Empty),
+                        EquipLv2Id = o.EquipIdL2,
+                        EquipLv2Desc = !string.IsNullOrEmpty(o.EquipL2Desc) ? o.EquipL2Desc : (equip?.EquipDescL2 ?? string.Empty),
+                        Observation = o.ObsType,
+                        AffectedPortion = o.AffectedP,
+                        DefectDetails = o.DefDetails,
+                        // Report spec: only Diameter Actual is populated from grey-parts
+                        // master data here. Rollcoat / Touchpoint / Harness /
+                        // Maintenance Philosophy / Replacement Frequency are Log-form-only
+                        // fields and stay blank on the Report page.
+                        DiameterActual = equip?.EquipL2RollDia ?? string.Empty,
+                        RollcoatActual = string.Empty,
+                        RollTouchpoint = string.Empty,
+                        HarnessActual = string.Empty,
+                        MaintenancePhilosophy = string.Empty,
+                        ReplacementFrequency = string.Empty,
+                        DiameterNew = o.DiameterNew,
+                        HardnessNew = o.HardnessNew,
+                        LiningCondNew = o.LiningCondNew,
+                        BearingCondNew = o.BearingCondNew,
+                        BakeliteGuideplateCond = o.BakelitePlateCondNew,
+                        Status = o.SeverityStatus,
+                        StripPathAuditDate = o.SpAuditDate,
+                        LastRollchangeDate = o.LastRollChangeDate,
+                        LastBearingGreasingDate = o.LastBearGreaseDate,
+                        LoggedOn = o.CreatedOn,
+                        AttachmentName = o.AttachmentName
+                    };
+                });
+
+                if (!string.IsNullOrEmpty(filter.Section))
+                    joined = joined.Where(r => r.Section.Equals(filter.Section, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(filter.EquipL1))
+                    joined = joined.Where(r => r.EquipLv1.Equals(filter.EquipL1, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(filter.EquipL2))
+                    joined = joined.Where(r => r.EquipLv2Id.Equals(filter.EquipL2, StringComparison.OrdinalIgnoreCase));
+
+                return await Task.FromResult(joined.OrderByDescending(r => r.ObservationId));
+            }
+
+            var results = new List<SpmObservationReportDto>();
+            try
+            {
+                using var conn = new OracleConnection(_connectionString);
+                await conn.OpenAsync();
+
+                // Requires SECTION_NAME, EQUIP_L1_DESC, EQUIP_L2_DESC, ATTACHMENT_NAME
+                // columns to exist on TRN_SPM_OBSERVATION (see ALTER TABLE step).
+                string sql = @"
+                    SELECT SPM_OBS_ID, EQUIPID_L2, SECTION_NAME, EQUIP_L1_DESC, EQUIP_L2_DESC,
+                           OBSTYPE, AFFECTEDP, DEFDETAILS, DIAMETER_NEW, HARDNESS_NEW,
+                           LINING_COND_NEW, BEARING_COND_NEW, BAKELITE_PLATE_COND_NEW,
+                           SEVERITY_STATUS, SP_AUDIT_DATE, LAST_ROLLCHANGE_DATE,
+                           LAST_BEARGREASE_DATE, CREATEDON, ATTACHMENT_NAME
+                    FROM TRN_SPM_OBSERVATION
+                    WHERE CREATEDON BETWEEN :StartDate AND :EndDate
+                      AND (:Section IS NULL OR SECTION_NAME = :Section)
+                      AND (:EquipL1 IS NULL OR EQUIP_L1_DESC = :EquipL1)
+                      AND (:EquipL2 IS NULL OR EQUIPID_L2 = :EquipL2)
+                    ORDER BY SPM_OBS_ID DESC";
+
+                using var cmd = new OracleCommand(sql, conn);
+                // ODP.NET binds by POSITION by default. This query reuses :Section,
+                // :EquipL1, and :EquipL2 twice each, so positional binding runs out
+                // of values and throws ORA-01008. BindByName makes each named
+                // placeholder reuse the same supplied parameter correctly.
+                cmd.BindByName = true;
+                cmd.Parameters.Add(new OracleParameter("StartDate", OracleDbType.Date) { Value = filter.StartDate });
+                cmd.Parameters.Add(new OracleParameter("EndDate", OracleDbType.Date) { Value = filter.EndDate });
+                cmd.Parameters.Add(new OracleParameter("Section", OracleDbType.Varchar2) { Value = (object?)filter.Section ?? DBNull.Value });
+                cmd.Parameters.Add(new OracleParameter("EquipL1", OracleDbType.Varchar2) { Value = (object?)filter.EquipL1 ?? DBNull.Value });
+                cmd.Parameters.Add(new OracleParameter("EquipL2", OracleDbType.Varchar2) { Value = (object?)filter.EquipL2 ?? DBNull.Value });
+
+                var rows = new List<SpmObservationReportDto>();
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        rows.Add(new SpmObservationReportDto
+                        {
+                            ObservationId = Convert.ToInt32(reader["SPM_OBS_ID"]),
+                            EquipLv2Id = reader["EQUIPID_L2"]?.ToString() ?? string.Empty,
+                            Section = reader["SECTION_NAME"]?.ToString() ?? string.Empty,
+                            EquipLv1 = reader["EQUIP_L1_DESC"]?.ToString() ?? string.Empty,
+                            EquipLv2Desc = reader["EQUIP_L2_DESC"]?.ToString() ?? string.Empty,
+                            Observation = reader["OBSTYPE"]?.ToString() ?? string.Empty,
+                            AffectedPortion = reader["AFFECTEDP"]?.ToString() ?? string.Empty,
+                            DefectDetails = reader["DEFDETAILS"]?.ToString() ?? string.Empty,
+                            DiameterNew = reader["DIAMETER_NEW"]?.ToString() ?? string.Empty,
+                            HardnessNew = reader["HARDNESS_NEW"]?.ToString() ?? string.Empty,
+                            LiningCondNew = reader["LINING_COND_NEW"]?.ToString() ?? string.Empty,
+                            BearingCondNew = reader["BEARING_COND_NEW"]?.ToString() ?? string.Empty,
+                            BakeliteGuideplateCond = reader["BAKELITE_PLATE_COND_NEW"]?.ToString() ?? string.Empty,
+                            Status = reader["SEVERITY_STATUS"]?.ToString() ?? string.Empty,
+                            StripPathAuditDate = reader["SP_AUDIT_DATE"] as DateTime?,
+                            LastRollchangeDate = reader["LAST_ROLLCHANGE_DATE"] as DateTime?,
+                            LastBearingGreasingDate = reader["LAST_BEARGREASE_DATE"] as DateTime?,
+                            LoggedOn = Convert.ToDateTime(reader["CREATEDON"]),
+                            AttachmentName = reader["ATTACHMENT_NAME"] as string
+                        });
+                    }
+                }
+
+                // Enrich each row with live grey-parts data via the same stored
+                // proc the Log form uses for its disabled fields. Per report
+                // spec: only Diameter Actual is populated here. Rollcoat /
+                // Touchpoint / Harness / Maintenance Philosophy / Replacement
+                // Frequency are Log-form-only fields and stay blank on the
+                // Report page.
+                var greyPartsCache = new Dictionary<string, SpmGreyPartsDto?>();
+                foreach (var dto in rows)
+                {
+                    if (!greyPartsCache.TryGetValue(dto.EquipLv2Id, out var grey))
+                    {
+                        grey = await GetGreyPartsAsync(dto.EquipLv2Id);
+                        greyPartsCache[dto.EquipLv2Id] = grey;
+                    }
+
+                    dto.DiameterActual = grey?.EquipL2RollDia ?? string.Empty;
+                    dto.RollcoatActual = string.Empty;
+                    dto.RollTouchpoint = string.Empty;
+                    dto.HarnessActual = string.Empty;
+                    dto.MaintenancePhilosophy = string.Empty;
+                    dto.ReplacementFrequency = string.Empty;
+
+                    results.Add(dto);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching observation report from Oracle database.");
+                throw;
+            }
+
+            return results;
         }
 
         #region Helper Oracle Stored Procedure Callers
@@ -388,7 +590,7 @@ namespace backend.Repositories
                 cmd.Parameters.Add("P_MASTER_TYPE", OracleDbType.Varchar2).Value = masterType;
                 cmd.Parameters.Add("P_MACHINEID", OracleDbType.Varchar2).Value = machineId;
                 cmd.Parameters.Add("P_SECTION", OracleDbType.Varchar2).Value = section;
-                cmd.Parameters.Add("P_EQUIP_L1", OracleDbType.Varchar2).Value = equipL2Id; // L2 ID passed as L1 in procedure for EL2_M
+                cmd.Parameters.Add("P_EQUIP_L1", OracleDbType.Varchar2).Value = equipL2Id;
 
                 var cv1 = new OracleParameter("CV_1", OracleDbType.RefCursor);
                 cv1.Direction = ParameterDirection.InputOutput;
@@ -473,10 +675,14 @@ namespace backend.Repositories
         {
             public int SpmObsId { get; set; }
             public string EquipIdL2 { get; set; } = string.Empty;
+            public string SectionName { get; set; } = string.Empty;
+            public string EquipL1Desc { get; set; } = string.Empty;
+            public string EquipL2Desc { get; set; } = string.Empty;
             public string ObsType { get; set; } = string.Empty;
             public string AffectedP { get; set; } = string.Empty;
             public string DefDetails { get; set; } = string.Empty;
             public string Attachment { get; set; } = string.Empty;
+            public string? AttachmentName { get; set; }
             public string CreatedBy { get; set; } = string.Empty;
             public DateTime CreatedOn { get; set; }
             public string DiameterNew { get; set; } = string.Empty;

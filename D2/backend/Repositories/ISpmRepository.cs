@@ -13,5 +13,6 @@ namespace backend.Repositories
         Task<IEnumerable<SpmCodeDto>> GetObservationTypesAsync();
         Task<IEnumerable<SpmCodeDto>> GetAffectedPortionsAsync();
         Task<bool> SaveObservationAsync(SpmObservationInput input, string? attachmentName, string? fileExtension);
+        Task<IEnumerable<SpmObservationReportDto>> GetObservationReportAsync(SpmReportFilter filter);
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -164,9 +165,15 @@ namespace backend.Controllers
                     _logger.LogInformation("File saved successfully to {Path}", filePath);
                 }
 
+                // ↓↓↓ THIS is the block you asked "where does it go" about.
+                // It replaces the old input-construction block, right here,
+                // inside the existing SaveObservation action.
                 var input = new SpmObservationInput
                 {
                     EquipIdL2 = form.EquipIdL2,
+                    SectionName = form.SectionName,
+                    EquipL1Desc = form.EquipL1Desc,
+                    EquipL2Desc = form.EquipL2Desc,
                     ObsType = form.ObsType,
                     AffectedP = form.AffectedP,
                     DefDetails = form.DefDetails,
@@ -180,6 +187,7 @@ namespace backend.Controllers
                     LastRollChangeDate = form.LastRollChangeDate,
                     LastBearGreaseDate = form.LastBearGreaseDate
                 };
+                // ↑↑↑ end of the block in question
 
                 bool saved = await _repository.SaveObservationAsync(input, attachmentName, fileExtension);
                 if (saved)
@@ -197,11 +205,98 @@ namespace backend.Controllers
                 return StatusCode(500, $"Internal Server Error: {ex.Message}");
             }
         }
+
+        [HttpGet("report")]
+        public async Task<IActionResult> GetReport(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] string? section,
+            [FromQuery] string? equipL1,
+            [FromQuery] string? equipL2)
+        {
+            try
+            {
+                var filter = new SpmReportFilter
+                {
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    Section = section,
+                    EquipL1 = equipL1,
+                    EquipL2 = equipL2
+                };
+
+                var rows = await _repository.GetObservationReportAsync(filter);
+
+                var result = rows.Select(r => new
+                {
+                    observationId = r.ObservationId,
+                    section = r.Section,
+                    equipLv1 = r.EquipLv1,
+                    equipLv2Id = r.EquipLv2Id,
+                    equipLv2Desc = r.EquipLv2Desc,
+                    observation = r.Observation,
+                    affectedPortion = r.AffectedPortion,
+                    defectDetails = r.DefectDetails,
+                    diameterActual = r.DiameterActual,
+                    rollcoatActual = r.RollcoatActual,
+                    rollTouchpoint = r.RollTouchpoint,
+                    hardnessActual = r.HarnessActual,
+                    maintenancePhilosophy = r.MaintenancePhilosophy,
+                    replacementFrequency = r.ReplacementFrequency,
+                    diameterNew = r.DiameterNew,
+                    hardnessNew = r.HardnessNew,
+                    liningCondNew = r.LiningCondNew,
+                    bearingCondNew = r.BearingCondNew,
+                    bakeliteGuideplateCond = r.BakeliteGuideplateCond,
+                    status = r.Status,
+                    stripPathAuditDate = r.StripPathAuditDate,
+                    lastRollchangeDate = r.LastRollchangeDate,
+                    lastBearingGreasingDate = r.LastBearingGreasingDate,
+                    loggedOn = r.LoggedOn,
+                    attachmentUrl = string.IsNullOrEmpty(r.AttachmentName)
+                        ? null
+                        : $"/api/spm/attachment/{r.AttachmentName}"
+                });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching observation report");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        [HttpGet("attachment/{fileName}")]
+        public IActionResult GetAttachment(string fileName)
+        {
+            try
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("Attachment not found.");
+                }
+
+                var bytes = System.IO.File.ReadAllBytes(filePath);
+                return File(bytes, "application/octet-stream", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching attachment {FileName}", fileName);
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
     }
 
     public class SpmObservationFormModel
     {
         public string EquipIdL2 { get; set; } = string.Empty;
+        public string SectionName { get; set; } = string.Empty;
+        public string EquipL1Desc { get; set; } = string.Empty;
+        public string EquipL2Desc { get; set; } = string.Empty;
         public string ObsType { get; set; } = string.Empty;
         public string AffectedP { get; set; } = string.Empty;
         public string DefDetails { get; set; } = string.Empty;

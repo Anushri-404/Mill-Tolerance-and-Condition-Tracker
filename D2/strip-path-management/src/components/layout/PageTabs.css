@@ -1,0 +1,22 @@
+.page-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+}
+
+.page-tabs__tab {
+  background: var(--color-panel-bg);
+  border: 1px solid var(--color-panel-border);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 6px 16px;
+  font-size: var(--font-size-base);
+  color: var(--color-label-text);
+  cursor: pointer;
+}
+
+.page-tabs__tab--active {
+  background: var(--color-header-bg);
+  color: var(--color-header-text);
+  font-weight: 700;
+}

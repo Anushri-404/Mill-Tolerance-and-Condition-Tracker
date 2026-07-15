@@ -224,7 +224,7 @@ const LogObservationForm = forwardRef((props, ref) => {
 
   const saveForm = async () => {
     setLoading(true)
-    
+
     for (const field of MANDATORY_FIELDS) {
       const value = form[field.key]
       if (!value || value === '' || value === undefined) {
@@ -245,13 +245,15 @@ const LogObservationForm = forwardRef((props, ref) => {
     formData.append('bearingCondNew', form.bearingCondition)
     formData.append('bakelitePlateCondNew', form.bakeliteGuidePlateCondition)
     formData.append('severityStatus', form.severity)
+    formData.append('sectionName', form.section)
+    formData.append('equipL1Desc', form.equipmentLevel1)
+    formData.append('equipL2Desc', equipL2List.find(e => e.equipIdL2 === form.equipmentLevel2)?.equipDescL2 ?? '')
     if (form.stripPathAuditDate) formData.append('spAuditDate', form.stripPathAuditDate)
     if (form.lastRollChangeDate) formData.append('lastRollChangeDate', form.lastRollChangeDate)
     if (form.lastBearingGreasingDate) formData.append('lastBearGreaseDate', form.lastBearingGreasingDate)
     if (form.attachment) {
       formData.append('attachment', form.attachment)
     }
-
     try {
       const response = await fetch(`${API_BASE}/save-observation`, {
         method: 'POST',

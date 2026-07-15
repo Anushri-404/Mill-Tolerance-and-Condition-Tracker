@@ -1,0 +1,26 @@
+.report-form {
+  padding: 10px 14px 16px;
+}
+
+.report-form__mandatory-note {
+  color: var(--color-required);
+  font-weight: 700;
+  margin: 4px 0 12px;
+}
+
+.report-form__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, max-content) 1fr);
+  grid-template-rows: repeat(2, auto);
+  column-gap: 8px;
+  row-gap: 14px;
+}
+
+.report-form__grid .form-field .form-field__control {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.report-form__filler {
+  grid-column: span 2;
+}
