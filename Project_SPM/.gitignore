@@ -1,0 +1,15 @@
+# frontend
+strip-path-management/node_modules/
+strip-path-management/dist/
+strip-path-management/.env
+
+# backend
+backend/bin/
+backend/obj/
+backend/appsettings.json
+backend/appsettings.Development.json
+
+# general
+.vscode/
+.DS_Store
+*.log
