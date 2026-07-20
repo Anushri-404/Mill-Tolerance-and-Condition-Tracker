@@ -1,0 +1,232 @@
+.crf-screen {
+  max-width: 1120px;
+  margin: 0;
+  padding: 10px;
+  background: #4a6280;
+  border: 1px solid #1a2f45;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  font-size: 12px;
+  color: #111;
+}
+
+.crf-panel {
+  border: 1px solid #1a2f45;
+  margin: 0 0 10px 0;
+  padding: 8px 10px 10px;
+}
+
+.crf-panel--outer {
+  background: #5b7290;
+}
+
+.crf-panel--inner {
+  background: #c3cdd8;
+}
+
+.crf-panel legend {
+  font-weight: 700;
+  color: #16202c;
+  padding: 0 5px;
+  font-size: 12px;
+}
+
+.crf-row-panels {
+  display: flex;
+  gap: 10px;
+}
+
+.crf-panel--half {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Chock Information */
+.crf-info-grid {
+  display: grid;
+  grid-template-columns: 90px 110px 90px 90px 90px 1.5fr;
+  gap: 7px 7px;
+  align-items: center;
+}
+.crf-info-grid > input.crf-input--wide {
+  margin-right: 40px;
+}
+
+.crf-status-group {
+  grid-column: 4 / 7;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crf-status-group .crf-input--wide {
+  flex: 1;
+  margin-right: 250px;
+}
+
+.crf-label {
+  font-weight: 500;
+  color: #111;
+  font-size: 12px;
+}
+
+.crf-label--link {
+  color: #1e40af;
+}
+
+.crf-label--lower {
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 11px;
+  text-align: center;
+}
+
+.crf-label--upper {
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 11px;
+  text-align: center;
+}
+
+.crf-diameter-grid {
+  display: grid;
+  grid-template-columns: 18px 88px 88px 88px 88px;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.crf-diameter-head {
+  font-weight: 600;
+  text-align: center;
+  font-size: 11px;
+}
+
+.crf-row-num {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.crf-unit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* End Cover */
+.crf-endcover-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.crf-endcover-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 22px;
+  margin-top: 6px;
+}
+
+.crf-endcover-tolerance-box {
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 6px 10px 8px;
+  background: transparent;
+}
+
+.crf-endcover-tolerance-title {
+  text-align: center;
+  font-weight: 600;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+
+.crf-endcover-tolerance-subheader {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.crf-endcover-tolerance-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+/* Chock Width tables */
+.crf-width-header {
+  display: grid;
+  grid-template-columns: 82px 84px 84px 66px 66px;
+  gap: 5px;
+  font-weight: 600;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.crf-width-row {
+  display: grid;
+  grid-template-columns: 82px 84px 84px 66px 66px;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.crf-width-label {
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.crf-width-cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.crf-unit {
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+/* Inputs */
+.crf-input {
+  border: 1px solid #333;
+  padding: 2px 4px;
+  font-size: 12px;
+  background: #fff;
+  box-sizing: border-box;
+  width: 80px;
+}
+
+.crf-input--num {
+  width: 100%;
+  max-width: 82px;
+}
+
+.crf-input--wide {
+  width: 100%;
+}
+
+.crf-input--disabled {
+  background: #a9b6c4;
+  color: #555;
+}
+
+/* Lower Limit / Upper Limit / Tolerance boxes */
+.crf-input--limit {
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.crf-textarea {
+  width: 100%;
+  min-height: 30px;
+  resize: vertical;
+}
+
+@media (max-width: 900px) {
+  .crf-row-panels {
+    flex-direction: column;
+  }
+  .crf-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

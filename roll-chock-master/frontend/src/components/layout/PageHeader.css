@@ -1,0 +1,18 @@
+.page-header {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: linear-gradient(
+    100deg,
+    var(--color-bar-grad-start) 0%,
+    var(--color-bar-grad-end) 100%
+  );
+}
+
+.page-header__title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  color: var(--color-bar-text);
+}
