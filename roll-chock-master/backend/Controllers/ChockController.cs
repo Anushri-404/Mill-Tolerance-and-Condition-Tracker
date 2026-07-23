@@ -52,6 +52,26 @@ namespace RollChockBackend.Controllers
             }
         }
 
+        [HttpGet("type-config")]
+        public async Task<IActionResult> GetTypeConfig([FromQuery] string chockType, [FromQuery] string? chockId)
+        {
+            if (string.IsNullOrWhiteSpace(chockType))
+            {
+                return BadRequest("Chock Type is required.");
+            }
+
+            try
+            {
+                var config = await _repository.GetTypeConfigAsync(chockType, chockId);
+                return Ok(config);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching type config for {ChockType}", chockType);
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
         [HttpPost("save")]
         public async Task<IActionResult> Save([FromBody] ChockSaveRequest input)
         {
@@ -67,6 +87,8 @@ namespace RollChockBackend.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                // Validation-style failures (missing maker, wrong status) —
+                // mirrors the legacy trigger's MESSAGE()/FORM_TRIGGER_FAILURE.
                 return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)

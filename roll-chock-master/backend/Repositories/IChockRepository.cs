@@ -6,6 +6,7 @@ namespace RollChockBackend.Repositories
     {
         Task<ChockLookupsDto> GetLookupsAsync();
         Task<ChockQueryResponse> QueryChockAsync(string chockId, string chockType);
+        Task<ChockTypeConfigDto> GetTypeConfigAsync(string chockType, string? chockId);
         Task<(bool success, bool wasUpdate)> SaveChockAsync(ChockSaveRequest input);
     }
 }

@@ -2,7 +2,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  padding: 14px 20px;
+  padding: 9px 16px;
   background: linear-gradient(
     100deg,
     var(--color-bar-grad-start) 0%,
@@ -12,7 +12,7 @@
 
 .page-header__title {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
   letter-spacing: 0.2px;
   color: var(--color-bar-text);
 }

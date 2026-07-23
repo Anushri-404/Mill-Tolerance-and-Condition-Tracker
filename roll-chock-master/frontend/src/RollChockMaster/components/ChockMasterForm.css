@@ -5,7 +5,7 @@
   background: transparent;
   border: none;
   font-family: "Roboto", "Segoe UI", Tahoma, sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-title-text);
 }
 
@@ -15,8 +15,8 @@
   border-radius: var(--radius-card);
   background: var(--color-card-bg);
   box-shadow: var(--color-card-shadow);
-  margin: 0 0 20px 0;
-  padding: 0 18px 18px;
+  margin: 0 0 10px 0;
+  padding: 0 12px 10px;
   overflow: hidden;
 }
 
@@ -27,11 +27,11 @@
 
 .crf-panel legend {
   display: block;
-  width: calc(100% + 36px);
-  margin: 0 -18px 16px -18px;
-  padding: 12px 18px;
+  width: calc(100% + 24px);
+  margin: 0 -12px 8px -12px;
+  padding: 7px 12px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12.5px;
   letter-spacing: 0.2px;
   color: var(--color-bar-text);
   background: linear-gradient(
@@ -43,7 +43,7 @@
 
 .crf-row-panels {
   display: flex;
-  gap: 20px;
+  gap: 12px;
 }
 
 .crf-panel--half {
@@ -54,12 +54,12 @@
 /* Chock Information */
 .crf-info-grid {
   display: grid;
-  grid-template-columns: 90px 110px 90px 90px 90px 1.5fr;
-  gap: 12px 10px;
+  grid-template-columns: 84px 100px 84px 84px 84px 1.5fr;
+  gap: 7px 8px;
   align-items: center;
 }
 .crf-info-grid > input.crf-input--wide {
-  margin-right: 40px;
+  margin-right: 24px;
 }
 
 .crf-status-group {
@@ -71,13 +71,13 @@
 
 .crf-status-group .crf-input--wide {
   flex: 1;
-  margin-right: 250px;
+  margin-right: 200px;
 }
 
 .crf-label {
   font-weight: 500;
   color: var(--color-label-text);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .crf-label--link {
@@ -87,119 +87,119 @@
 .crf-label--lower {
   color: var(--color-link-blue);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   text-align: center;
 }
 
 .crf-label--upper {
   color: var(--color-limit-red);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   text-align: center;
 }
 
 .crf-diameter-grid {
   display: grid;
-  grid-template-columns: 18px 88px 88px 88px 88px;
-  gap: 10px 10px;
+  grid-template-columns: 16px 78px 78px 78px 78px;
+  gap: 6px 8px;
   align-items: center;
 }
 
 .crf-diameter-head {
   font-weight: 600;
   text-align: center;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-muted-text);
 }
 
 .crf-row-num {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-title-text);
 }
 
 .crf-unit-wrap {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 /* End Cover */
 .crf-endcover-layout {
   display: flex;
   align-items: flex-start;
-  gap: 18px;
+  gap: 12px;
 }
 
 .crf-endcover-main {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: 22px;
-  margin-top: 6px;
+  margin-left: 14px;
+  margin-top: 4px;
 }
 
 .crf-endcover-tolerance-box {
   border: 1px solid var(--color-card-border);
   border-radius: var(--radius-input);
-  padding: 8px 12px 10px;
+  padding: 6px 10px 8px;
   background: var(--color-input-bg);
 }
 
 .crf-endcover-tolerance-title {
   text-align: center;
   font-weight: 600;
-  font-size: 11px;
-  margin-bottom: 4px;
+  font-size: 10px;
+  margin-bottom: 3px;
   color: var(--color-muted-text);
 }
 
 .crf-endcover-tolerance-subheader {
   display: flex;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 4px;
+  gap: 12px;
+  margin-bottom: 3px;
 }
 
 .crf-endcover-tolerance-inputs {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* Chock Width tables */
 .crf-width-header {
   display: grid;
-  grid-template-columns: 82px 84px 84px 66px 66px;
-  gap: 6px;
+  grid-template-columns: 76px 78px 78px 60px 60px;
+  gap: 5px;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-muted-text);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .crf-width-row {
   display: grid;
-  grid-template-columns: 82px 84px 84px 66px 66px;
+  grid-template-columns: 76px 78px 78px 60px 60px;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin-bottom: 4px;
 }
 
 .crf-width-label {
   font-weight: 500;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-label-text);
 }
 
 .crf-width-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .crf-unit {
-  font-size: 9px;
+  font-size: 8.5px;
   white-space: nowrap;
   color: var(--color-muted-text);
 }
@@ -208,13 +208,13 @@
 .crf-input {
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius-input);
-  padding: 5px 7px;
-  font-size: 12px;
+  padding: 3px 6px;
+  font-size: 11.5px;
   font-family: inherit;
   background: var(--color-input-bg);
   color: var(--color-input-text);
   box-sizing: border-box;
-  width: 80px;
+  width: 74px;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -227,7 +227,7 @@
 
 .crf-input--num {
   width: 100%;
-  max-width: 82px;
+  max-width: 76px;
 }
 
 .crf-input--wide {
@@ -246,9 +246,47 @@
 
 .crf-textarea {
   width: 100%;
-  min-height: 60px;
+  min-height: 42px;
   resize: vertical;
   font-family: inherit;
+}
+
+/* ---- Save (moved to the end of the page; Query removed, Clear stays
+   in the top action bar) ---- */
+.crf-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.crf-save-btn {
+  background: linear-gradient(
+    100deg,
+    var(--color-bar-grad-start) 0%,
+    var(--color-bar-grad-end) 100%
+  );
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.15s ease, transform 0.05s ease;
+}
+
+.crf-save-btn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.crf-save-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.crf-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

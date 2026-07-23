@@ -10,7 +10,6 @@ function App() {
 
   const actions = [
     { label: 'Query', onClick: () => formRef.current?.query() },
-    { label: 'Save', onClick: () => formRef.current?.save() },
     { label: 'Clear', onClick: () => formRef.current?.clear() },
   ]
 

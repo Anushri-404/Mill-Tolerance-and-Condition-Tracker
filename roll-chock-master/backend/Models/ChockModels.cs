@@ -1,6 +1,7 @@
 namespace RollChockBackend.Models
 {
-    
+    // What the frontend sends when saving (mirrors ChockMasterForm's field
+    // names exactly, so no remapping is needed in the React component).
     public class ChockSaveRequest
     {
         public string CHM_CHK_TYP { get; set; } = string.Empty;
@@ -45,6 +46,8 @@ namespace RollChockBackend.Models
         public decimal? CHM_CHK_LIN_BOTTOM_LOW_OUT { get; set; }
     }
 
+    // Same shape, used as the "chock" part of a query response so the
+    // frontend can spread it straight into form state.
     public class ChockRecordDto : ChockSaveRequest
     {
     }
@@ -84,4 +87,21 @@ namespace RollChockBackend.Models
         public List<string> ChockTypes { get; set; } = new();
         public List<CodeDto> ChockMakers { get; set; } = new();
     }
+
+    // Returned when the frontend selects a Chock Type (and, once known, a
+    // Chock ID prefix). Drives two things automatically, matching what the
+    // legacy Oracle Forms screen did through field-level triggers:
+    //   1. The default status code/description for a brand-new chock.
+    //   2. Which measurement fields don't apply to this chock type, based on
+    //      which T_CHOCK_STND tolerance columns are NULL for it, so the
+    //      frontend can grey those inputs out instead of asking for values
+    //      that have no tolerance standard to validate against.
+    public class ChockTypeConfigDto
+    {
+        public string DefaultStatusCode { get; set; } = "CNEW";
+        public string? DefaultStatusDesc { get; set; }
+        public ChockToleranceDto? Tolerance { get; set; }
+        public List<string> DisabledFields { get; set; } = new();
+    }
 }
+

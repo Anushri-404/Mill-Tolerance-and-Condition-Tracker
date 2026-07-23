@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle, Fragment } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle, Fragment } from "react";
 import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.css";
 import {
@@ -8,7 +8,12 @@ import {
   WITHOUT_LINER_PREFIX,
   WITH_LINER_PREFIX,
 } from "../chockFieldsConfig";
-import { fetchChockLookups, fetchExistingChock, saveChock } from "../services/chockLookupService";
+import {
+  fetchChockLookups,
+  fetchExistingChock,
+  fetchChockTypeConfig,
+  saveChock,
+} from "../services/chockLookupService";
 import "./ChockMasterForm.css";
 
 const EDITABLE_STATUS = "CNEW";
@@ -59,6 +64,15 @@ const ChockMasterForm = forwardRef((props, ref) => {
   const [isExistingRecord, setIsExistingRecord] = useState(false);
   const [lookups, setLookups] = useState({ chockType: [], chockMaker: [] });
   const [saving, setSaving] = useState(false);
+  // Field names (matching T_CHOCK_MAST columns) that don't apply to the
+  // currently selected Chock Type — driven by which T_CHOCK_STND tolerance
+  // columns are NULL for that type. These render disabled/greyed and are
+  // excluded from validation and cleared before save.
+  const [disabledFields, setDisabledFields] = useState([]);
+
+  // Guards against an in-flight Chock ID lookup landing after the type/id
+  // have already changed again.
+  const lookupToken = useRef(0);
 
   useEffect(() => {
     fetchChockLookups()
@@ -72,30 +86,6 @@ const ChockMasterForm = forwardRef((props, ref) => {
   const set = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleQuery = async () => {
-    if (!form.CHM_CHK_TYP || !form.CHM_ID_CHOCK) {
-      alertify.error("Enter Chock Type and Chock ID");
-      return;
-    }
-    try {
-      const existing = await fetchExistingChock(form.CHM_ID_CHOCK, form.CHM_CHK_TYP);
-      if (existing) {
-        setForm((prev) => ({ ...prev, ...existing.record }));
-        setStatusDesc(existing.statusDesc ?? "");
-        setTolerance(existing.tolerance ? mapTolerance(existing.tolerance) : emptyTolerance());
-        setIsExistingRecord(true);
-      } else {
-        setIsExistingRecord(false);
-        setStatusDesc("");
-        setTolerance(emptyTolerance());
-        alertify.error("Record not found — enter details to create a new chock");
-      }
-    } catch (err) {
-      console.error("Error querying chock:", err);
-      alertify.error("Query failed — check the backend connection.");
-    }
-  };
-
   const mapTolerance = (t) => {
     const out = {};
     Object.keys(emptyTolerance()).forEach((k) => {
@@ -104,7 +94,122 @@ const ChockMasterForm = forwardRef((props, ref) => {
     return out;
   };
 
+  // Clears any currently-entered values for fields that just became
+  // not-applicable for the selected Chock Type, so stale numbers from a
+  // previous type don't silently get saved against a field that no longer
+  // has a tolerance standard behind it.
+  const clearFieldsNowDisabled = (fields) => {
+    if (!fields.length) return;
+    setForm((prev) => {
+      const next = { ...prev };
+      fields.forEach((f) => {
+        next[f] = "";
+      });
+      return next;
+    });
+  };
+
+  // Fires when the Chock Type dropdown changes. This is what makes the
+  // "select a type -> some boxes go grey, status auto-fills" behavior work:
+  // it pulls the tolerance standard for the type and applies both the
+  // disabled-field set and (for brand-new chocks) the default status.
+  const handleChockTypeChange = async (e) => {
+    const chockType = e.target.value;
+    setForm((prev) => ({ ...prev, CHM_CHK_TYP: chockType }));
+
+    if (!chockType) {
+      setTolerance(emptyTolerance());
+      setDisabledFields([]);
+      return;
+    }
+
+    const myToken = ++lookupToken.current;
+    try {
+      const config = await fetchChockTypeConfig(chockType, form.CHM_ID_CHOCK || undefined);
+      if (myToken !== lookupToken.current) return; // a newer change superseded this one
+
+      setTolerance(config.tolerance ? mapTolerance(config.tolerance) : emptyTolerance());
+      setDisabledFields(config.disabledFields);
+      clearFieldsNowDisabled(config.disabledFields);
+
+      // Only auto-set the status for a chock we're not already editing —
+      // an existing record keeps whatever status it actually has.
+      if (!isExistingRecord) {
+        setForm((prev) => ({ ...prev, CHM_CD_CHK_PROG: config.defaultStatusCode }));
+        setStatusDesc(config.defaultStatusDesc || "");
+      }
+    } catch (err) {
+      console.error("Error fetching chock type configuration:", err);
+      alertify.error("Could not load field rules for this Chock Type.");
+    }
+  };
+
+  // Shared lookup used by both the explicit Query action and the silent
+  // auto-lookup on Chock ID blur. `announce` controls whether not-found /
+  // error states get an alertify message — Query is a deliberate user
+  // action so it always speaks up; the blur auto-lookup stays quiet.
+  const runLookup = async (chockId, chockType, { announce }) => {
+    const myToken = ++lookupToken.current;
+    try {
+      const [existing, config] = await Promise.all([
+        fetchExistingChock(chockId, chockType),
+        fetchChockTypeConfig(chockType, chockId),
+      ]);
+      if (myToken !== lookupToken.current) return;
+
+      setTolerance(config.tolerance ? mapTolerance(config.tolerance) : emptyTolerance());
+      setDisabledFields(config.disabledFields);
+
+      if (existing) {
+        setForm((prev) => ({ ...prev, ...existing.record }));
+        setStatusDesc(existing.statusDesc ?? "");
+        if (existing.tolerance) setTolerance(mapTolerance(existing.tolerance));
+        setIsExistingRecord(true);
+      } else {
+        setIsExistingRecord(false);
+        clearFieldsNowDisabled(config.disabledFields);
+        if (announce) {
+          alertify.error("Record not found — enter details to create a new chock");
+        }
+      }
+    } catch (err) {
+      console.error("Error looking up chock:", err);
+      if (announce) {
+        alertify.error("Query failed — check the backend connection.");
+      }
+    }
+  };
+
+  // Explicit "Query" action (top action bar). Mirrors the legacy
+  // EXECUTE-QUERY trigger: requires both Chock Type and Chock ID, and
+  // reports outright if nothing is found.
+  const handleQuery = async () => {
+    if (!form.CHM_CHK_TYP || !form.CHM_ID_CHOCK) {
+      alertify.error("Enter Chock Type and Chock ID");
+      return;
+    }
+    await runLookup(form.CHM_ID_CHOCK, form.CHM_CHK_TYP, { announce: true });
+  };
+
+  // Fires when the user tabs/clicks out of the Chock ID field. Runs the
+  // same lookup silently in the background so a matching record loads
+  // automatically without requiring a manual Query click.
+  const handleChockIdBlur = async () => {
+    const chockId = form.CHM_ID_CHOCK;
+    const chockType = form.CHM_CHK_TYP;
+    if (!chockId || !chockType) return;
+    await runLookup(chockId, chockType, { announce: false });
+  };
+
   const validate = () => {
+    if (!form.CHM_CHK_TYP) {
+      alertify.error("Select a Chock Type");
+      return false;
+    }
+    if (!form.CHM_ID_CHOCK) {
+      alertify.error("Enter Chock ID");
+      return false;
+    }
     if (!form.CHM_CHK_MAKER) {
       alertify.error("Enter Chock Maker");
       return false;
@@ -119,7 +224,9 @@ const ChockMasterForm = forwardRef((props, ref) => {
   const buildPayload = () => {
     const payload = { ...form };
     ALL_NUMERIC_FIELDS.forEach((f) => {
-      payload[f] = form[f] === "" ? null : Number(form[f]);
+      // Fields not applicable to this Chock Type are always sent as null,
+      // regardless of anything left over in local state.
+      payload[f] = disabledFields.includes(f) || form[f] === "" ? null : Number(form[f]);
     });
     return payload;
   };
@@ -131,6 +238,7 @@ const ChockMasterForm = forwardRef((props, ref) => {
       const result = await saveChock(buildPayload());
       if (result.success) {
         alertify.success(result.wasUpdate ? "Record Updated" : "Record Inserted");
+        setIsExistingRecord(true);
       }
     } catch (err) {
       alertify.error(err.message || "Record Failed");
@@ -144,6 +252,7 @@ const ChockMasterForm = forwardRef((props, ref) => {
     setTolerance(emptyTolerance());
     setStatusDesc("");
     setIsExistingRecord(false);
+    setDisabledFields([]);
   };
 
   useImperativeHandle(ref, () => ({
@@ -152,21 +261,35 @@ const ChockMasterForm = forwardRef((props, ref) => {
     clear: clearAll,
   }));
 
+  const isDisabled = (field) => disabledFields.includes(field);
+
   // One row of the Chock Width table — shared by "without Liner" and "with Liner".
   // upperField/lowerField (when present) pull real tolerance values in for the
   // two rows flagged hasTolerance (Top -> *_U/_L, Top Lower -> *_U1/_L1).
   const renderWidthRow = (row, prefix, upperField, lowerField) => {
     const inField = widthField(prefix, row.suffix, "IN");
     const outField = widthField(prefix, row.suffix, "OUT");
+    const inDisabled = isDisabled(inField);
+    const outDisabled = isDisabled(outField);
     return (
       <div className="crf-width-row" key={inField}>
         <span className="crf-width-label">{row.label}</span>
         <div className="crf-width-cell">
-          <input className="crf-input crf-input--num" value={form[inField]} onChange={set(inField)} />
+          <input
+            className={`crf-input crf-input--num${inDisabled ? " crf-input--disabled" : ""}`}
+            value={form[inField]}
+            onChange={set(inField)}
+            disabled={inDisabled}
+          />
           <span className="crf-unit">(mm)</span>
         </div>
         <div className="crf-width-cell">
-          <input className="crf-input crf-input--num" value={form[outField]} onChange={set(outField)} />
+          <input
+            className={`crf-input crf-input--num${outDisabled ? " crf-input--disabled" : ""}`}
+            value={form[outField]}
+            onChange={set(outField)}
+            disabled={outDisabled}
+          />
           <span className="crf-unit">(mm)</span>
         </div>
         <div className="crf-width-cell">
@@ -207,7 +330,7 @@ const ChockMasterForm = forwardRef((props, ref) => {
         <div className="crf-info-grid">
           {/* Row 1 */}
           <label className="crf-label crf-label--link">Chock Type</label>
-          <select className="crf-input crf-input--num" value={form.CHM_CHK_TYP} onChange={set("CHM_CHK_TYP")}>
+          <select className="crf-input crf-input--num" value={form.CHM_CHK_TYP} onChange={handleChockTypeChange}>
             <option value="">--Select--</option>
             {(lookups?.chockType ?? []).map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -222,7 +345,13 @@ const ChockMasterForm = forwardRef((props, ref) => {
 
           {/* Row 2 */}
           <label className="crf-label crf-label--link">Chock ID</label>
-          <input className="crf-input crf-input--num" value={form.CHM_ID_CHOCK} onChange={set("CHM_ID_CHOCK")} maxLength={6} />
+          <input
+            className="crf-input crf-input--num"
+            value={form.CHM_ID_CHOCK}
+            onChange={set("CHM_ID_CHOCK")}
+            onBlur={handleChockIdBlur}
+            maxLength={6}
+          />
 
           <label className="crf-label">Receipt Date</label>
           <input className="crf-input crf-input--num" type="date" value={form.CHM_DT_CHK_IMP ?? ""} onChange={set("CHM_DT_CHK_IMP")} />
@@ -248,46 +377,60 @@ const ChockMasterForm = forwardRef((props, ref) => {
             <span className="crf-diameter-head crf-label--lower">Lower Limit</span>
             <span className="crf-diameter-head crf-label--upper">Upper Limit</span>
 
-            {DIAMETER_ROWS.map((r, idx) => (
-              <Fragment key={r.row}>
-                <span className="crf-row-num">{r.row}</span>
-                <span className="crf-unit-wrap">
-                  <input className="crf-input crf-input--num" value={form[r.aField]} onChange={set(r.aField)} />
-                  <span className="crf-unit">(mm)</span>
-                </span>
-                <span className="crf-unit-wrap">
-                  <input className="crf-input crf-input--num" value={form[r.bField]} onChange={set(r.bField)} />
-                  <span className="crf-unit">(mm)</span>
-                </span>
-                {idx === 0 ? (
-                  <>
-                    <span className="crf-unit-wrap">
-                      <input
-                        className="crf-input crf-input--num crf-input--disabled crf-input--limit"
-                        value={tolerance.CHS_CK_IDI_TL_L ?? ""}
-                        disabled
-                        readOnly
-                      />
-                      <span className="crf-unit">(mm)</span>
-                    </span>
-                    <span className="crf-unit-wrap">
-                      <input
-                        className="crf-input crf-input--num crf-input--disabled crf-input--limit"
-                        value={tolerance.CHS_CK_IDI_TL_U ?? ""}
-                        disabled
-                        readOnly
-                      />
-                      <span className="crf-unit">(mm)</span>
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span />
-                    <span />
-                  </>
-                )}
-              </Fragment>
-            ))}
+            {DIAMETER_ROWS.map((r, idx) => {
+              const aDisabled = isDisabled(r.aField);
+              const bDisabled = isDisabled(r.bField);
+              return (
+                <Fragment key={r.row}>
+                  <span className="crf-row-num">{r.row}</span>
+                  <span className="crf-unit-wrap">
+                    <input
+                      className={`crf-input crf-input--num${aDisabled ? " crf-input--disabled" : ""}`}
+                      value={form[r.aField]}
+                      onChange={set(r.aField)}
+                      disabled={aDisabled}
+                    />
+                    <span className="crf-unit">(mm)</span>
+                  </span>
+                  <span className="crf-unit-wrap">
+                    <input
+                      className={`crf-input crf-input--num${bDisabled ? " crf-input--disabled" : ""}`}
+                      value={form[r.bField]}
+                      onChange={set(r.bField)}
+                      disabled={bDisabled}
+                    />
+                    <span className="crf-unit">(mm)</span>
+                  </span>
+                  {idx === 0 ? (
+                    <>
+                      <span className="crf-unit-wrap">
+                        <input
+                          className="crf-input crf-input--num crf-input--disabled crf-input--limit"
+                          value={tolerance.CHS_CK_IDI_TL_L ?? ""}
+                          disabled
+                          readOnly
+                        />
+                        <span className="crf-unit">(mm)</span>
+                      </span>
+                      <span className="crf-unit-wrap">
+                        <input
+                          className="crf-input crf-input--num crf-input--disabled crf-input--limit"
+                          value={tolerance.CHS_CK_IDI_TL_U ?? ""}
+                          disabled
+                          readOnly
+                        />
+                        <span className="crf-unit">(mm)</span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span />
+                      <span />
+                    </>
+                  )}
+                </Fragment>
+              );
+            })}
           </div>
         </fieldset>
 
@@ -384,6 +527,17 @@ const ChockMasterForm = forwardRef((props, ref) => {
           maxLength={300}
         />
       </fieldset>
+
+      <div className="crf-save-row">
+        <button
+          type="button"
+          className="crf-save-btn"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
     </div>
   );
 });

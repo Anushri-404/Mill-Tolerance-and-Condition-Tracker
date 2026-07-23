@@ -35,6 +35,7 @@ namespace RollChockBackend.Repositories
                 }
             }
 
+            // Chock Maker dropdown: CD_TYPE = 'CHKMK'
             using (var cmd = new OracleCommand(
                 "SELECT CD_VALUE, CD_DESC FROM T_CODES WHERE CD_TYPE = 'CHKMK' ORDER BY 1", conn))
             using (var reader = await cmd.ExecuteReaderAsync())
@@ -59,6 +60,8 @@ namespace RollChockBackend.Repositories
 
             var response = new ChockQueryResponse { Found = false };
 
+            // Mirrors the legacy EXECUTE-QUERY trigger's first SELECT against
+            // V_CHOCK_MAST, filtered to a non-deleted row for this chock.
             const string chockSql = @"
                 SELECT * FROM T_CHOCK_MAST
                 WHERE CHM_ID_CHOCK = :ChockId
@@ -83,6 +86,7 @@ namespace RollChockBackend.Repositories
                 return response;
             }
 
+            // Mirrors the second block: status description from T_CODES (C0030).
             using (var cmd = new OracleCommand(
                 "SELECT CD_DESC FROM T_CODES WHERE CD_TYPE = 'C0030' AND CD_VALUE = :Status", conn))
             {
@@ -94,6 +98,8 @@ namespace RollChockBackend.Repositories
                 response.StatusDesc = desc?.ToString();
             }
 
+            // Mirrors the third block: tolerance standards from T_CHOCK_STND,
+            // keyed by chock type + first 3 chars of the chock id.
             var osDs = chockId.Length >= 3 ? chockId.Substring(0, 3) : chockId;
             const string tolSql = @"
                 SELECT * FROM T_CHOCK_STND
@@ -129,6 +135,138 @@ namespace RollChockBackend.Repositories
             return response;
         }
 
+        // Drives the "select Chock Type -> some boxes grey out, status
+        // auto-fills" behavior. Looks up the T_CHOCK_STND row for this type
+        // (narrowed to the Chock ID's 3-char prefix once one is known) and:
+        //   - reports the default status (CNEW / its T_CODES description)
+        //     for brand-new chocks
+        //   - reports which measurement fields have no tolerance defined for
+        //     this type, so the frontend can disable them instead of asking
+        //     the user to fill in a value nothing will validate against
+        public async Task<ChockTypeConfigDto> GetTypeConfigAsync(string chockType, string? chockId)
+        {
+            var config = new ChockTypeConfigDto();
+            using var conn = new OracleConnection(_connectionString);
+            await conn.OpenAsync();
+
+            // Default status for a new chock: CNEW plus its T_CODES (C0030) description.
+            using (var cmd = new OracleCommand(
+                "SELECT CD_DESC FROM T_CODES WHERE CD_TYPE = 'C0030' AND CD_VALUE = :Status", conn))
+            {
+                cmd.Parameters.Add(new OracleParameter("Status", OracleDbType.Varchar2) { Value = config.DefaultStatusCode });
+                var desc = await cmd.ExecuteScalarAsync();
+                config.DefaultStatusDesc = desc?.ToString();
+            }
+
+            // Tolerance standard row for this type. If a Chock ID prefix is
+            // known, use the exact CHS_OS_DS match first (mirrors the legacy
+            // SUBSTR(CHM_ID_CHOCK,1,3) lookup); otherwise fall back to any
+            // row on file for the type, since the "which fields apply" set
+            // is a property of the chock type/design, not the mill prefix.
+            var osDs = !string.IsNullOrWhiteSpace(chockId) && chockId!.Length >= 3
+                ? chockId.Substring(0, 3)
+                : null;
+
+            ChockToleranceDto? tolerance = null;
+
+            if (osDs != null)
+            {
+                tolerance = await ReadToleranceRow(conn,
+                    "SELECT * FROM T_CHOCK_STND WHERE CHS_CHK_TYP = :ChockType AND CHS_OS_DS = :OsDs",
+                    chockType, osDs);
+            }
+
+            if (tolerance == null)
+            {
+                tolerance = await ReadToleranceRow(conn,
+                    "SELECT * FROM T_CHOCK_STND WHERE CHS_CHK_TYP = :ChockType ORDER BY CHS_OS_DS FETCH FIRST 1 ROWS ONLY",
+                    chockType, null);
+            }
+
+            config.Tolerance = tolerance;
+            config.DisabledFields = ComputeDisabledFields(tolerance);
+
+            return config;
+        }
+
+        private static async Task<ChockToleranceDto?> ReadToleranceRow(
+            OracleConnection conn, string sql, string chockType, string? osDs)
+        {
+            using var cmd = new OracleCommand(sql, conn);
+            cmd.Parameters.Add(new OracleParameter("ChockType", OracleDbType.Varchar2) { Value = chockType });
+            if (osDs != null)
+            {
+                cmd.Parameters.Add(new OracleParameter("OsDs", OracleDbType.Varchar2) { Value = osDs });
+            }
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+            {
+                return null;
+            }
+
+            return new ChockToleranceDto
+            {
+                CHS_CK_IDI_TL_U = GetDecimal(reader, "CHS_CK_IDI_TL_U"),
+                CHS_CK_IDI_TL_L = GetDecimal(reader, "CHS_CK_IDI_TL_L"),
+                CHS_CK_END_TL_U = GetDecimal(reader, "CHS_CK_END_TL_U"),
+                CHS_CK_END_TL_L = GetDecimal(reader, "CHS_CK_END_TL_L"),
+                CHS_CK_W_LIN_TL_U = GetDecimal(reader, "CHS_CK_W_LIN_TL_U"),
+                CHS_CK_W_LIN_TL_L = GetDecimal(reader, "CHS_CK_W_LIN_TL_L"),
+                CHS_CK_W_LIN_TL_U1 = GetDecimal(reader, "CHS_CK_W_LIN_TL_U1"),
+                CHS_CK_W_LIN_TL_L1 = GetDecimal(reader, "CHS_CK_W_LIN_TL_L1"),
+                CHS_CK_LIN_TL_U = GetDecimal(reader, "CHS_CK_LIN_TL_U"),
+                CHS_CK_LIN_TL_L = GetDecimal(reader, "CHS_CK_LIN_TL_L"),
+                CHS_CK_LIN_TL_U1 = GetDecimal(reader, "CHS_CK_LIN_TL_U1"),
+                CHS_CK_LIN_TL_L1 = GetDecimal(reader, "CHS_CK_LIN_TL_L1"),
+            };
+        }
+
+        // Maps each tolerance-pair on T_CHOCK_STND to the form fields it
+        // governs. If a pair is NULL for this type's standard row, there is
+        // no tolerance to check the measurement against, so those fields are
+        // reported as not applicable (frontend greys them out and excludes
+        // them from validation/save). If no standard row exists at all for
+        // the type yet, nothing is disabled — we don't want missing seed
+        // data to silently lock out every field.
+        private static List<string> ComputeDisabledFields(ChockToleranceDto? t)
+        {
+            var disabled = new List<string>();
+            if (t == null) return disabled;
+
+            if (t.CHS_CK_IDI_TL_U == null && t.CHS_CK_IDI_TL_L == null)
+            {
+                disabled.AddRange(new[]
+                {
+                    "CHM_CK_A1_INSID_DI", "CHM_CK_B1_INSID_DI",
+                    "CHM_CK_A2_INSID_DI", "CHM_CK_B2_INSID_DI",
+                    "CHM_CK_C1_INSID_DI", "CHM_CK_C2_INSID_DI",
+                });
+            }
+
+            if (t.CHS_CK_W_LIN_TL_U == null && t.CHS_CK_W_LIN_TL_L == null)
+            {
+                disabled.AddRange(new[] { "CHM_CHK_W_LIN_TOP_IN", "CHM_CHK_W_LIN_TOP_OUT" });
+            }
+
+            if (t.CHS_CK_W_LIN_TL_U1 == null && t.CHS_CK_W_LIN_TL_L1 == null)
+            {
+                disabled.AddRange(new[] { "CHM_CHK_W_LIN_TOP_LOW_IN", "CHM_CHK_W_LIN_TOP_LOW_OUT" });
+            }
+
+            if (t.CHS_CK_LIN_TL_U == null && t.CHS_CK_LIN_TL_L == null)
+            {
+                disabled.AddRange(new[] { "CHM_CHK_LIN_TOP_IN", "CHM_CHK_LIN_TOP_OUT" });
+            }
+
+            if (t.CHS_CK_LIN_TL_U1 == null && t.CHS_CK_LIN_TL_L1 == null)
+            {
+                disabled.AddRange(new[] { "CHM_CHK_LIN_TOP_LOW_IN", "CHM_CHK_LIN_TOP_LOW_OUT" });
+            }
+
+            return disabled;
+        }
+
         public async Task<(bool success, bool wasUpdate)> SaveChockAsync(ChockSaveRequest input)
         {
             if (string.IsNullOrWhiteSpace(input.CHM_CHK_MAKER))
@@ -138,7 +276,9 @@ namespace RollChockBackend.Repositories
 
             using var conn = new OracleConnection(_connectionString);
             await conn.OpenAsync();
-            
+
+            // Mirrors DUP_VAL_ON_INDEX handling in the legacy SAVE trigger:
+            // check whether a live row already exists for this PK.
             string? existingStatus = null;
             using (var cmd = new OracleCommand(
                 "SELECT CHM_CD_CHK_PROG FROM T_CHOCK_MAST WHERE CHM_ID_CHOCK = :Id AND CHM_CHK_TYP = :Typ AND CHM_DEL_TAG = 'N'",
