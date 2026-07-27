@@ -1,4 +1,4 @@
-# Mill Equipment Digitization Projects — Tata Steel Internship
+# Mill Equipment Digitization Projects — Internship(3 weeks)
 
 ## About This Repository
 
