@@ -105,5 +105,9 @@ App will be available at `http://localhost:5173` by default.
 - Currently in active development
 - Backend Oracle integration is being finalized (moving off mock data mode)
 
-## License / Usage
-(anushri)
+## License
+This project is licensed under the MIT License.    
+
+
+
+                                                                     -Anushri

@@ -1,0 +1,50 @@
+# Auto detect text files and normalize line endings
+* text=auto
+
+# C#
+*.cs text diff=csharp
+
+# Solution / Project
+*.sln text
+*.csproj text
+
+# JSON
+*.json text
+
+# JavaScript
+*.js text
+*.jsx text
+
+# HTML
+*.html text
+
+# CSS
+*.css text
+
+# Markdown
+*.md text
+
+# SQL
+*.sql text
+
+# XML
+*.xml text
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# Archives
+*.zip binary
+*.7z binary
+*.rar binary

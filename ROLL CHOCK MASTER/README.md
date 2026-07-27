@@ -228,4 +228,7 @@ GitHub: https://github.com/Anushri-404
 ---
 
 ## License
-Anushri
+
+This project is licensed under the MIT License.
+
+                                                             -Anushri
