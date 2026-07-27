@@ -169,12 +169,15 @@ Oracle Database
 
 ---
 
-## License
-This project is intended for internal use as part of a Tata Steel internship and is not currently licensed for external distribution.
-
----
-
 ## Author
 **Anu Shri**
 Computer Science Engineering Student
-GitHub: []
+GitHub: https://github.com/Anushri-404
+
+---
+
+## License
+This project is intended for internal use as part of a Tata Steel internship and is not currently licensed for external distribution.
+
+
+                                                             -Anushri
