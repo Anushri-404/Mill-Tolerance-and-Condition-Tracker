@@ -207,7 +207,5 @@ GitHub: https://github.com/Anushri-404
 ---
 
 ## License
+This project is intended for internal use as part of a Tata Steel internship and is not currently licensed for external distribution.
 
-This project is licensed under the MIT License.
-
-                                                             -Anushri
