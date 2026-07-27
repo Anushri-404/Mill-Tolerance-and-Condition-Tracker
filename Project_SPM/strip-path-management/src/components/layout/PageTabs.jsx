@@ -17,13 +17,6 @@ function PageTabs({ active, onChange }) {
       >
         Report
       </button>
-      <button
-        type="button"
-        className={'page-tabs__tab' + (active === 'chock' ? ' page-tabs__tab--active' : '')}
-        onClick={() => onChange('chock')}
-      >
-        Roll Chock
-      </button>
     </div>
   )
 }
