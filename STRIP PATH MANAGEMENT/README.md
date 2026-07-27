@@ -124,3 +124,57 @@ App will be available at `http://localhost:5173` by default.
 ## Status / Known Limitations
 - Currently in active development
 - Runs against real Oracle data when a connection string is configured and reachable; otherwise falls back to mock data automatically
+
+---
+
+## Architecture
+```
+React Frontend
+        │
+        ▼
+ASP.NET Core Web API
+        │
+Repository Pattern
+        │
+Oracle Database (or in-memory mock, if unreachable)
+```
+
+---
+
+## Repository Pattern
+The backend follows the Repository Pattern for better separation of concerns.
+```
+Controller
+      │
+      ▼
+Repository Interface
+      │
+      ▼
+Repository Implementation
+      │
+      ▼
+Oracle Database
+```
+
+---
+
+## Future Enhancements
+- Authentication & Authorization
+- Update & delete endpoints for logged observations
+- Pagination
+- Advanced search filters
+- Export report to Excel/PDF
+- Unit Testing
+- Docker Support
+
+---
+
+## License
+This project is intended for internal use as part of a Tata Steel internship and is not currently licensed for external distribution.
+
+---
+
+## Author
+**Anu Shri**
+Computer Science Engineering Student
+GitHub: []
