@@ -1,15 +1,48 @@
-# frontend
-strip-path-management/node_modules/
-strip-path-management/dist/
-strip-path-management/.env
+# ==========================================
+# FRONTEND (React + Vite)
+# ==========================================
 
-# backend
+frontend/node_modules/
+frontend/dist/
+
+# Environment files
+frontend/.env
+frontend/.env.*
+
+# ==========================================
+# BACKEND (.NET)
+# ==========================================
+
 backend/bin/
 backend/obj/
-backend/appsettings.json
-backend/appsettings.Development.json
 
-# general
+# Configuration files containing secrets
+backend/appsettings.Development.json
+backend/appsettings.json
+
+# Visual Studio generated files
+backend/*.user
+backend/*.suo
+backend/*.userosscache
+backend/*.sln.docstates
+
+# ==========================================
+# IDE
+# ==========================================
+
 .vscode/
-.DS_Store
+.vs/
+.idea/
+
+# ==========================================
+# Logs
+# ==========================================
+
 *.log
+
+# ==========================================
+# Operating System
+# ==========================================
+
+.DS_Store
+Thumbs.db
