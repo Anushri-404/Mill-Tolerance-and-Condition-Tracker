@@ -20,6 +20,7 @@ backend/obj/
 # Configuration (contains secrets)
 backend/appsettings.json
 backend/appsettings.Development.json
+backend/appsettings.Production.json
 
 # Publish output
 backend/publish/
