@@ -5,12 +5,12 @@ var builder = WebApplication.CreateBuilder(args);
 //add services to the container.
 builder.Services.AddControllers();
 
-//to allow React Frontend
+//to allow React Frontend — origin comes from config, set FrontendOrigin as an env var on Render.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(builder.Configuration["FrontendOrigin"] ?? "http://localhost:5173")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });

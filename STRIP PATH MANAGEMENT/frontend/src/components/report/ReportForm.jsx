@@ -50,7 +50,7 @@ const ReportForm = forwardRef(({ onResult }, ref) => {
   const [equipL1List, setEquipL1List] = useState([])
   const [equipL2List, setEquipL2List] = useState([])
 
-  const API_BASE = 'http://localhost:5103/api/spm'
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/spm`
 
   const fetchSections = () => {
     fetch(`${API_BASE}/sections`)

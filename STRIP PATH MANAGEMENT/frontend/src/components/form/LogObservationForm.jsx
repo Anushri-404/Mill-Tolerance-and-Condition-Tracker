@@ -54,7 +54,7 @@ const LogObservationForm = forwardRef((props, ref) => {
   const [fileKey, setFileKey] = useState(0)
   const [loading, setLoading] = useState(false)
 
-  const API_BASE = 'http://localhost:5103/api/spm'
+ const API_BASE = `${import.meta.env.VITE_API_URL}/api/spm`
 
   useEffect(() => {
     const fetchInitialData = async () => {

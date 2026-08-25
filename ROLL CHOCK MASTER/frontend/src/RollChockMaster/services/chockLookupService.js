@@ -4,7 +4,7 @@
 // from the SPM backend). Change API_BASE if you run the backend on a
 // different port than the default used in Program.cs (5210).
 
-const API_BASE = 'http://localhost:5210/api/chock'
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/chock`
 
 export async function fetchChockLookups() {
   const res = await fetch(`${API_BASE}/lookups`)
